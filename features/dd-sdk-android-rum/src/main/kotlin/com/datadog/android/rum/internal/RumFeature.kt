@@ -41,6 +41,7 @@ import com.datadog.android.rum.RumSessionListener
 import com.datadog.android.rum.configuration.VitalsUpdateFrequency
 import com.datadog.android.rum.internal.anr.ANRDetectorRunnable
 import com.datadog.android.rum.internal.debug.UiRumDebugListener
+import com.datadog.android.rum.internal.domain.FileStorageRumDataWriter
 import com.datadog.android.rum.internal.domain.RumDataWriter
 import com.datadog.android.rum.internal.domain.event.RumEventMapper
 import com.datadog.android.rum.internal.domain.event.RumEventMetaDeserializer
@@ -148,9 +149,18 @@ internal class RumFeature(
         this.appContext = appContext
         initialResourceIdentifier = configuration.initialResourceIdentifier
         lastInteractionIdentifier = configuration.lastInteractionIdentifier
-        dataWriter = createDataWriter(
+
+        // Create the original RumDataWriter
+        val originalWriter = createDataWriter(
             configuration,
             sdkCore as InternalSdkCore
+        )
+
+        // Wrap the original writer with our custom implementation that stores events in a file
+        dataWriter = FileStorageRumDataWriter(
+            originalDataWriter = originalWriter as RumDataWriter,
+            context = appContext,
+            internalLogger = sdkCore.internalLogger
         )
 
         sampleRate = if (sdkCore.isDeveloperModeEnabled) {
