@@ -44,7 +44,11 @@ import com.datadog.android.rum.configuration.SlowFramesConfiguration
 import com.datadog.android.rum.configuration.VitalsUpdateFrequency
 import com.datadog.android.rum.internal.anr.ANRDetectorRunnable
 import com.datadog.android.rum.internal.debug.UiRumDebugListener
+<<<<<<< HEAD
 import com.datadog.android.rum.internal.domain.InfoProvider
+=======
+import com.datadog.android.rum.internal.domain.FileStorageRumDataWriter
+>>>>>>> 55996d385 (Storing rum events in a file)
 import com.datadog.android.rum.internal.domain.RumDataWriter
 import com.datadog.android.rum.internal.domain.accessibility.AccessibilityInfo
 import com.datadog.android.rum.internal.domain.accessibility.AccessibilitySnapshotManager
@@ -202,9 +206,17 @@ internal class RumFeature(
         lastInteractionIdentifier = configuration.lastInteractionIdentifier
         insightsCollector = configuration.insightsCollector
 
-        dataWriter = createDataWriter(
+        // Create the original RumDataWriter
+        val originalWriter = createDataWriter(
             configuration,
             sdkCore as InternalSdkCore
+        )
+
+        // Wrap the original writer with our custom implementation that stores events in a file
+        dataWriter = FileStorageRumDataWriter(
+            originalDataWriter = originalWriter as RumDataWriter,
+            context = appContext,
+            internalLogger = sdkCore.internalLogger
         )
 
         sampleRate = if (sdkCore.isDeveloperModeEnabled) {
