@@ -11,9 +11,9 @@ import com.datadog.gradle.config.detektCustomConfig
 import com.datadog.gradle.config.javadocConfig
 import com.datadog.gradle.config.junitConfig
 import com.datadog.gradle.config.kotlinConfig
-import com.datadog.gradle.config.publishingConfig
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import java.nio.file.Paths
+import java.util.Properties
 
 plugins {
     // Build
@@ -23,7 +23,6 @@ plugins {
 
     // Publish
     `maven-publish`
-    signing
     id("org.jetbrains.dokka-javadoc")
 
     // Analysis tools
@@ -139,8 +138,40 @@ androidLibraryConfig()
 junitConfig()
 javadocConfig()
 dependencyUpdateConfig()
-publishingConfig(
-    "The RUM feature to use with the Datadog monitoring " +
-        "library for Android applications."
-)
-detektCustomConfig()
+detektCustomConfig(":dd-sdk-android-core", ":dd-sdk-android-internal")
+// Load properties from local.properties file if it exists
+val localProperties = Properties()
+val localPropertiesFile = rootProject.file("local.properties")
+if (localPropertiesFile.exists()) {
+    localProperties.load(localPropertiesFile.inputStream())
+}
+
+publishing {
+    // 1. Define what you are publishing (the AAR)
+    publications {
+        create<MavenPublication>("release") {
+            groupId = "com.earnin.datadog"
+            artifactId = "dd-sdk-android-rum"
+            version = "3.8.0-internal-dev-v1" // Use your custom version
+
+            // Defer accessing the component until after evaluation
+            afterEvaluate {
+                from(components["release"])
+            }
+        }
+    }
+
+    // 2. Define where you are publishing to (GitHub Packages)
+    repositories {
+        maven {
+            name = "GitHubPackages"
+            // Read repository URL from local.properties
+            url = uri("https://maven.pkg.github.com/${localProperties.getProperty("github.repository")}")
+            credentials {
+                // Read credentials from local.properties
+                username = localProperties.getProperty("github.username")
+                password = localProperties.getProperty("github.token")
+            }
+        }
+    }
+}
