@@ -31,16 +31,11 @@ internal class RumEventsFileProvider(
      */
     fun getRumEventsFile(): File {
         try {
-            // Generate filename based on testMethodName or use default
-            val filename = if (!testMethodName.isNullOrBlank()) {
-                "$testMethodName.jsonl"
-            } else {
-                "datadog_rum_events.jsonl"
-            }
-
             // Use public Documents directory instead of app-specific directory
             val documentsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS)
             val datadogDir = File(documentsDir, "Datadog")
+
+            // Create Datadog directory if it doesn't exist
             if (!datadogDir.exists()) {
                 val dirCreated = datadogDir.mkdirs()
                 if (!dirCreated) {
@@ -50,18 +45,39 @@ internal class RumEventsFileProvider(
                         { "Failed to create Datadog directory in Documents. Falling back to app-specific directory." }
                     )
                     // Fall back to app-specific directory if we can't create the directory
-                    return File(context.getExternalFilesDir(null), filename)
+                    return createAppSpecificFile()
                 }
             }
 
-            val file = File(datadogDir, filename)
+            // Generate filename based on testMethodName or use default
+            if (!testMethodName.isNullOrBlank()) {
+                val baselineFilename = "$testMethodName-baseline.jsonl"
+                val baselineFile = File(datadogDir, baselineFilename)
 
-            internalLogger.log(
-                InternalLogger.Level.INFO,
-                InternalLogger.Target.USER,
-                { "Rum events file path: ${file.absolutePath}" }
-            )
-            return file
+                val filename = if (baselineFile.exists()) {
+                    "$testMethodName-replay.jsonl"
+                } else {
+                    baselineFilename
+                }
+
+                val file = File(datadogDir, filename)
+
+                internalLogger.log(
+                    InternalLogger.Level.INFO,
+                    InternalLogger.Target.USER,
+                    { "Rum events file path: ${file.absolutePath}" }
+                )
+                return file
+            } else {
+                val file = File(datadogDir, "datadog_rum_events.jsonl")
+
+                internalLogger.log(
+                    InternalLogger.Level.INFO,
+                    InternalLogger.Target.USER,
+                    { "Rum events file path: ${file.absolutePath}" }
+                )
+                return file
+            }
         } catch (e: SecurityException) {
             // This can happen if the app doesn't have WRITE_EXTERNAL_STORAGE permission
             internalLogger.log(
@@ -71,12 +87,45 @@ internal class RumEventsFileProvider(
                 e
             )
             // Fall back to app-specific directory if we don't have permission
-            val filename = if (!testMethodName.isNullOrBlank()) {
-                "$testMethodName.jsonl"
+            return createAppSpecificFile()
+        }
+    }
+
+    /**
+     * Creates a file in the app-specific directory with the appropriate naming strategy.
+     * This is used as a fallback when the public Documents directory is not accessible.
+     *
+     * @return a File object for storing RUM events in the app-specific directory
+     */
+    private fun createAppSpecificFile(): File {
+        if (!testMethodName.isNullOrBlank()) {
+            val baselineFilename = "$testMethodName-baseline.jsonl"
+            val baselineFile = File(context.getExternalFilesDir(null), baselineFilename)
+
+            return if (baselineFile.exists()) {
+                val replayFile = File(context.getExternalFilesDir(null), "$testMethodName-replay.jsonl")
+                internalLogger.log(
+                    InternalLogger.Level.INFO,
+                    InternalLogger.Target.USER,
+                    { "Rum events file path: ${replayFile.absolutePath}" }
+                )
+                replayFile
             } else {
-                "datadog_rum_events.jsonl"
+                internalLogger.log(
+                    InternalLogger.Level.INFO,
+                    InternalLogger.Target.USER,
+                    { "Rum events file path: ${baselineFile.absolutePath}" }
+                )
+                baselineFile
             }
-            return File(context.getExternalFilesDir(null), filename)
+        } else {
+            val file = File(context.getExternalFilesDir(null), "datadog_rum_events.jsonl")
+            internalLogger.log(
+                InternalLogger.Level.INFO,
+                InternalLogger.Target.USER,
+                { "Rum events file path: ${file.absolutePath}" }
+            )
+            return file
         }
     }
 }
