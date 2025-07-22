@@ -7,8 +7,6 @@
 package com.datadog.android.rum.internal.domain
 
 import android.content.Context
-import android.os.Environment
-import android.util.Log
 import androidx.annotation.WorkerThread
 import com.datadog.android.api.InternalLogger
 import com.datadog.android.api.storage.DataWriter
@@ -33,47 +31,12 @@ import java.io.IOException
 internal class FileStorageRumDataWriter(
     private val originalDataWriter: RumDataWriter,
     private val context: Context,
-    private val internalLogger: InternalLogger
+    private val internalLogger: InternalLogger,
+    private val testMethodName: String? = null
 ) : DataWriter<Any> {
 
-    private val rumEventsFile: File by lazy {
-        try {
-            // Generate a unique filename with timestamp
-            val timestamp = System.currentTimeMillis()
-            val filename = "datadog_rum_events_$timestamp.json"
-
-            // Use public Documents directory instead of app-specific directory
-            val documentsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS)
-            val datadogDir = File(documentsDir, "Datadog")
-            if (!datadogDir.exists()) {
-                val dirCreated = datadogDir.mkdirs()
-                if (!dirCreated) {
-                    internalLogger.log(
-                        InternalLogger.Level.ERROR,
-                        InternalLogger.Target.USER,
-                        { "Failed to create Datadog directory in Documents. Falling back to app-specific directory." }
-                    )
-                    // Fall back to app-specific directory if we can't create the directory
-                    return@lazy File(context.getExternalFilesDir(null), filename)
-                }
-            }
-
-            val file = File(datadogDir, filename)
-            Log.d("Datadog", "Rum events file path: ${file.absolutePath}")
-            file
-        } catch (e: SecurityException) {
-            // This can happen if the app doesn't have WRITE_EXTERNAL_STORAGE permission
-            internalLogger.log(
-                InternalLogger.Level.ERROR,
-                InternalLogger.Target.USER,
-                { "SecurityException when accessing external storage: ${e.message}. Make sure WRITE_EXTERNAL_STORAGE permission is granted. Falling back to app-specific directory." },
-                e
-            )
-            // Fall back to app-specific directory if we don't have permission
-            val filename = "datadog_rum_events_${System.currentTimeMillis()}.json"
-            File(context.getExternalFilesDir(null), filename)
-        }
-    }
+    private val fileNameProvider = RumEventsFileProvider(context, internalLogger, testMethodName)
+    private val rumEventsFile: File by lazy { fileNameProvider.getRumEventsFile() }
 
     @WorkerThread
     override fun write(writer: EventBatchWriter, element: Any, eventType: EventType): Boolean {
