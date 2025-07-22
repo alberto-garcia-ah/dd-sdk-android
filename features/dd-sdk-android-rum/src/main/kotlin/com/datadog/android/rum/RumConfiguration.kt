@@ -411,6 +411,18 @@ data class RumConfiguration internal constructor(
         }
 
         /**
+         * Sets the test method name to be used for the RUM events file name.
+         * If provided, the file name will be {testMethodName}.jsonl.
+         * If not provided, a default name will be used.
+         *
+         * @param testMethodName the name of the test method
+         */
+        fun setTestMethodName(testMethodName: String): Builder {
+            rumConfig = rumConfig.copy(testMethodName = testMethodName)
+            return this
+        }
+
+        /**
          * Builds a [RumConfiguration] based on the current state of this Builder.
          */
         fun build(): RumConfiguration {

@@ -44,11 +44,8 @@ import com.datadog.android.rum.configuration.SlowFramesConfiguration
 import com.datadog.android.rum.configuration.VitalsUpdateFrequency
 import com.datadog.android.rum.internal.anr.ANRDetectorRunnable
 import com.datadog.android.rum.internal.debug.UiRumDebugListener
-<<<<<<< HEAD
-import com.datadog.android.rum.internal.domain.InfoProvider
-=======
 import com.datadog.android.rum.internal.domain.FileStorageRumDataWriter
->>>>>>> 55996d385 (Storing rum events in a file)
+import com.datadog.android.rum.internal.domain.InfoProvider
 import com.datadog.android.rum.internal.domain.RumDataWriter
 import com.datadog.android.rum.internal.domain.accessibility.AccessibilityInfo
 import com.datadog.android.rum.internal.domain.accessibility.AccessibilitySnapshotManager
@@ -216,7 +213,8 @@ internal class RumFeature(
         dataWriter = FileStorageRumDataWriter(
             originalDataWriter = originalWriter as RumDataWriter,
             context = appContext,
-            internalLogger = sdkCore.internalLogger
+            internalLogger = sdkCore.internalLogger,
+            testMethodName = configuration.testMethodName
         )
 
         sampleRate = if (sdkCore.isDeveloperModeEnabled) {
@@ -798,7 +796,8 @@ internal class RumFeature(
         val collectAccessibility: Boolean,
         val disableJankStats: Boolean,
         val insightsCollector: InsightsCollector,
-        val appStartupActivityPredicate: AppStartupActivityPredicate
+        val appStartupActivityPredicate: AppStartupActivityPredicate,
+        val testMethodName: String?
     )
 
     internal companion object {
@@ -852,7 +851,8 @@ internal class RumFeature(
             collectAccessibility = false,
             disableJankStats = false,
             insightsCollector = NoOpInsightsCollector(),
-            appStartupActivityPredicate = DefaultAppStartupActivityPredicate
+            appStartupActivityPredicate = DefaultAppStartupActivityPredicate,
+            testMethodName = null
         )
 
         internal const val EVENT_MESSAGE_PROPERTY = "message"
