@@ -9,7 +9,11 @@ package com.datadog.android.rum.internal.domain
 import android.content.Context
 import android.os.Environment
 import com.datadog.android.api.InternalLogger
+import com.google.gson.Gson
+import com.google.gson.JsonSyntaxException
 import java.io.File
+import java.io.FileReader
+import java.io.IOException
 
 /**
  * A provider for RUM events file name and location.
@@ -22,6 +26,67 @@ internal class RumEventsFileProvider(
     private val testMethodName: String? = null
 ) {
 
+    internal data class PerformanceTestConfig(
+        val methodName: String? = null,
+        val mode: String? = null
+    )
+
+    /**
+     * Reads the performance test configuration from
+     * /storage/emulated/0/Documents/Datadog/performance_test_device_config.json,
+     * logs the result, and returns the parsed configuration.
+     */
+    fun loadPerformaceTestConfig(): PerformanceTestConfig? {
+        return try {
+            val documentsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS)
+            val datadogDir = File(documentsDir, "Datadog")
+            val configFile = File(datadogDir, "performance_test_device_config.json")
+
+            if (!configFile.exists()) {
+                internalLogger.log(
+                    InternalLogger.Level.INFO,
+                    InternalLogger.Target.USER,
+                    { "Performance test config not found at: ${configFile.absolutePath}" }
+                )
+                null
+            } else {
+                FileReader(configFile).use { reader ->
+                    val config = Gson().fromJson(reader, PerformanceTestConfig::class.java)
+                    internalLogger.log(
+                        InternalLogger.Level.INFO,
+                        InternalLogger.Target.USER,
+                        { "Loaded performance test config: methodName=${config?.methodName}, mode=${config?.mode}" }
+                    )
+                    config
+                }
+            }
+        } catch (e: SecurityException) {
+            internalLogger.log(
+                InternalLogger.Level.ERROR,
+                InternalLogger.Target.USER,
+                { "SecurityException when reading performance test config: ${e.message}" },
+                e
+            )
+            null
+        } catch (e: JsonSyntaxException) {
+            internalLogger.log(
+                InternalLogger.Level.ERROR,
+                InternalLogger.Target.USER,
+                { "Invalid JSON in performance test config: ${e.message}" },
+                e
+            )
+            null
+        } catch (e: IOException) {
+            internalLogger.log(
+                InternalLogger.Level.ERROR,
+                InternalLogger.Target.USER,
+                { "IOException when reading performance test config: ${e.message}" },
+                e
+            )
+            null
+        }
+    }
+
     /**
      * Creates and returns a File object for storing RUM events.
      * If testMethodName is provided, it will be used as the file name with .jsonl extension.
@@ -32,6 +97,9 @@ internal class RumEventsFileProvider(
     fun getRumEventsFile(): File {
         try {
             // Use public Documents directory instead of app-specific directory
+            // Load and log performance test configuration (if present)
+            loadPerformaceTestConfig()
+
             val documentsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS)
             val datadogDir = File(documentsDir, "Datadog")
 
@@ -48,6 +116,8 @@ internal class RumEventsFileProvider(
                     return createAppSpecificFile()
                 }
             }
+
+
 
             // Generate filename based on testMethodName or use default
             if (!testMethodName.isNullOrBlank()) {
