@@ -45,6 +45,7 @@ internal class FileStorageRumDataWriter(
             element,
             internalLogger
         )
+        val threadName = Thread.currentThread().name
 
         // If serialization was successful, write to file
         if (serializedEvent != null) {
@@ -75,7 +76,7 @@ internal class FileStorageRumDataWriter(
                 internalLogger.log(
                     InternalLogger.Level.INFO,
                     InternalLogger.Target.USER,
-                    { "RUM event of type ${element.javaClass.simpleName} stored in file: ${rumEventsFile.absolutePath}" }
+                    { "RUM event of type ${element.javaClass.simpleName} stored in file: ${rumEventsFile.absolutePath}. Thread: $threadName" }
                 )
             } catch (e: SecurityException) {
                 internalLogger.log(
