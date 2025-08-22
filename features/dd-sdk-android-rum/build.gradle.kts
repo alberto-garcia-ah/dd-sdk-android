@@ -127,7 +127,7 @@ publishing {
         create<MavenPublication>("release") {
             groupId = "com.earnin.datadog"
             artifactId = "dd-sdk-android-rum"
-            version = "2.19.2-internal-dev-v8" // Use your custom version
+            version = "2.19.2-internal-dev-v9" // Use your custom version
 
             // Defer accessing the component until after evaluation
             afterEvaluate {
