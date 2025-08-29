@@ -112,7 +112,6 @@ public final class com/datadog/android/rum/RumConfiguration$Builder {
 	public final fun setSessionListener (Lcom/datadog/android/rum/RumSessionListener;)Lcom/datadog/android/rum/RumConfiguration$Builder;
 	public final fun setSessionSampleRate (F)Lcom/datadog/android/rum/RumConfiguration$Builder;
 	public final fun setTelemetrySampleRate (F)Lcom/datadog/android/rum/RumConfiguration$Builder;
-	public final fun setTestMethodName (Ljava/lang/String;)Lcom/datadog/android/rum/RumConfiguration$Builder;
 	public final fun setViewEventMapper (Lcom/datadog/android/rum/event/ViewEventMapper;)Lcom/datadog/android/rum/RumConfiguration$Builder;
 	public final fun setVitalsUpdateFrequency (Lcom/datadog/android/rum/configuration/VitalsUpdateFrequency;)Lcom/datadog/android/rum/RumConfiguration$Builder;
 	public final fun trackBackgroundEvents (Z)Lcom/datadog/android/rum/RumConfiguration$Builder;
@@ -257,6 +256,19 @@ public final class com/datadog/android/rum/configuration/VitalsUpdateFrequency :
 
 public abstract interface class com/datadog/android/rum/event/ViewEventMapper : com/datadog/android/event/EventMapper {
 	public abstract fun map (Lcom/datadog/android/rum/model/ViewEvent;)Lcom/datadog/android/rum/model/ViewEvent;
+}
+
+public final class com/datadog/android/rum/internal/domain/PerformanceTestConfig {
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun copy (Ljava/lang/String;Ljava/lang/String;)Lcom/datadog/android/rum/internal/domain/PerformanceTestConfig;
+	public static synthetic fun copy$default (Lcom/datadog/android/rum/internal/domain/PerformanceTestConfig;Ljava/lang/String;Ljava/lang/String;ILjava/lang/Object;)Lcom/datadog/android/rum/internal/domain/PerformanceTestConfig;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getMethodName ()Ljava/lang/String;
+	public final fun getMode ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
 }
 
 public final class com/datadog/android/rum/internal/domain/event/ResourceTiming {

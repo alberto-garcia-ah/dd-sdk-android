@@ -6,7 +6,6 @@
 
 package com.datadog.android.rum.internal.domain
 
-import android.content.Context
 import androidx.annotation.WorkerThread
 import com.datadog.android.api.InternalLogger
 import com.datadog.android.api.storage.DataWriter
@@ -30,13 +29,11 @@ import java.io.IOException
  */
 internal class FileStorageRumDataWriter(
     private val originalDataWriter: RumDataWriter,
-    private val context: Context,
     private val internalLogger: InternalLogger,
-    private val testMethodName: String? = null
 ) : DataWriter<Any> {
 
-    private val fileNameProvider = RumEventsFileProvider(context, internalLogger, testMethodName)
-    private val rumEventsFile: File by lazy { fileNameProvider.getRumEventsFile() }
+    private val fileNameProvider = PerformanceTestConfigProvider(internalLogger)
+    private val rumEventsFile: File? by lazy { fileNameProvider.getRumEventsFile() }
 
     @WorkerThread
     override fun write(writer: EventBatchWriter, element: Any, eventType: EventType): Boolean {
@@ -50,34 +47,43 @@ internal class FileStorageRumDataWriter(
         // If serialization was successful, write to file
         if (serializedEvent != null) {
             try {
-                // Ensure the parent directory exists before writing the file.
-                val parentDir = rumEventsFile.parentFile
-                if (parentDir != null && !parentDir.exists()) {
-                    val dirCreated = parentDir.mkdirs()
-                    if (!dirCreated) {
-                        internalLogger.log(
-                            InternalLogger.Level.ERROR,
-                            InternalLogger.Target.USER,
-                            { "Failed to create parent directory for RUM events file." }
-                        )
-                        return false
+                rumEventsFile?.let { file ->
+                    // Ensure the parent directory exists before writing the file.
+                    val parentDir = file.parentFile
+                    if (parentDir != null && !parentDir.exists()) {
+                        val dirCreated = parentDir.mkdirs()
+                        if (!dirCreated) {
+                            internalLogger.log(
+                                InternalLogger.Level.ERROR,
+                                InternalLogger.Target.USER,
+                                { "Failed to create parent directory for RUM events file." }
+                            )
+                            return false
+                        }
                     }
+
+                    // Convert byte array to string (JSON)
+                    val jsonString = String(serializedEvent) + "\n"
+
+                    // Append to file
+                    FileOutputStream(rumEventsFile, true).use { outputStream ->
+                        outputStream.write(jsonString.toByteArray())
+                        outputStream.flush()
+                    }
+
+                    internalLogger.log(
+                        InternalLogger.Level.INFO,
+                        InternalLogger.Target.USER,
+                        { "RUM event of type ${element.javaClass.simpleName} stored in file: ${file.absolutePath}. Thread: $threadName" }
+                    )
+                } ?: run {
+                    internalLogger.log(
+                        InternalLogger.Level.WARN,
+                        InternalLogger.Target.USER,
+                        { "RUM events file not found" }
+                    )
                 }
 
-                // Convert byte array to string (JSON)
-                val jsonString = String(serializedEvent) + "\n"
-
-                // Append to file
-                FileOutputStream(rumEventsFile, true).use { outputStream ->
-                    outputStream.write(jsonString.toByteArray())
-                    outputStream.flush()
-                }
-
-                internalLogger.log(
-                    InternalLogger.Level.INFO,
-                    InternalLogger.Target.USER,
-                    { "RUM event of type ${element.javaClass.simpleName} stored in file: ${rumEventsFile.absolutePath}. Thread: $threadName" }
-                )
             } catch (e: SecurityException) {
                 internalLogger.log(
                     InternalLogger.Level.ERROR,

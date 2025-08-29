@@ -159,9 +159,7 @@ internal class RumFeature(
         // Wrap the original writer with our custom implementation that stores events in a file
         dataWriter = FileStorageRumDataWriter(
             originalDataWriter = originalWriter as RumDataWriter,
-            context = appContext,
-            internalLogger = sdkCore.internalLogger,
-            testMethodName = configuration.testMethodName
+            internalLogger = sdkCore.internalLogger
         )
 
         sampleRate = if (sdkCore.isDeveloperModeEnabled) {
@@ -577,8 +575,7 @@ internal class RumFeature(
         val initialResourceIdentifier: InitialResourceIdentifier,
         val lastInteractionIdentifier: LastInteractionIdentifier?,
         val additionalConfig: Map<String, Any>,
-        val trackAnonymousUser: Boolean,
-        val testMethodName: String?
+        val trackAnonymousUser: Boolean
     )
 
     internal companion object {
@@ -624,8 +621,7 @@ internal class RumFeature(
             initialResourceIdentifier = TimeBasedInitialResourceIdentifier(),
             lastInteractionIdentifier = TimeBasedInteractionIdentifier(),
             additionalConfig = emptyMap(),
-            trackAnonymousUser = true,
-            testMethodName = null
+            trackAnonymousUser = true
         )
 
         internal const val EVENT_MESSAGE_PROPERTY = "message"

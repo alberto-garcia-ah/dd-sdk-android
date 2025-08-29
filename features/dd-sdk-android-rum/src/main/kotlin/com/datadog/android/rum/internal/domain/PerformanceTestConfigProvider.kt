@@ -20,23 +20,16 @@ import java.io.IOException
  * This class is responsible for creating the file with the proper name based on the testMethodName
  * or a default name if not provided.
  */
-internal class RumEventsFileProvider(
-    private val context: Context,
+internal class PerformanceTestConfigProvider(
     private val internalLogger: InternalLogger,
-    private val testMethodName: String? = null
 ) {
-
-    internal data class PerformanceTestConfig(
-        val methodName: String? = null,
-        val mode: String? = null
-    )
 
     /**
      * Reads the performance test configuration from
      * /storage/emulated/0/Documents/Datadog/performance_test_device_config.json,
      * logs the result, and returns the parsed configuration.
      */
-    fun loadPerformaceTestConfig(): PerformanceTestConfig? {
+    private fun loadPerformanceTestConfig(): PerformanceTestConfig? {
         return try {
             val documentsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS)
             val datadogDir = File(documentsDir, "Datadog")
@@ -94,11 +87,11 @@ internal class RumEventsFileProvider(
      *
      * @return a File object for storing RUM events
      */
-    fun getRumEventsFile(): File {
+    fun getRumEventsFile(): File? {
         try {
             // Use public Documents directory instead of app-specific directory
             // Load and log performance test configuration (if present)
-            loadPerformaceTestConfig()
+            val config = loadPerformanceTestConfig()
 
             val documentsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS)
             val datadogDir = File(documentsDir, "Datadog")
@@ -113,41 +106,30 @@ internal class RumEventsFileProvider(
                         { "Failed to create Datadog directory in Documents. Falling back to app-specific directory." }
                     )
                     // Fall back to app-specific directory if we can't create the directory
-                    return createAppSpecificFile()
+                    return null
                 }
             }
 
-
-
-            // Generate filename based on testMethodName or use default
-            if (!testMethodName.isNullOrBlank()) {
-                val baselineFilename = "$testMethodName-baseline.jsonl"
-                val baselineFile = File(datadogDir, baselineFilename)
-
-                val filename = if (baselineFile.exists()) {
-                    "$testMethodName-replay.jsonl"
-                } else {
-                    baselineFilename
-                }
-
-                val file = File(datadogDir, filename)
-
+            if (config == null) {
                 internalLogger.log(
-                    InternalLogger.Level.INFO,
+                    InternalLogger.Level.ERROR,
                     InternalLogger.Target.USER,
-                    { "Rum events file path: ${file.absolutePath}" }
+                    { "Performance test config not found." }
                 )
-                return file
-            } else {
-                val file = File(datadogDir, "datadog_rum_events.jsonl")
-
-                internalLogger.log(
-                    InternalLogger.Level.INFO,
-                    InternalLogger.Target.USER,
-                    { "Rum events file path: ${file.absolutePath}" }
-                )
-                return file
+                return null
             }
+
+            val fileName = "${config.methodName}-baseline.jsonl"
+            val file = File(datadogDir, fileName)
+
+
+            internalLogger.log(
+                InternalLogger.Level.INFO,
+                InternalLogger.Target.USER,
+                { "Rum events file path: ${file.absolutePath}" }
+            )
+            return file
+
         } catch (e: SecurityException) {
             // This can happen if the app doesn't have WRITE_EXTERNAL_STORAGE permission
             internalLogger.log(
@@ -157,45 +139,7 @@ internal class RumEventsFileProvider(
                 e
             )
             // Fall back to app-specific directory if we don't have permission
-            return createAppSpecificFile()
-        }
-    }
-
-    /**
-     * Creates a file in the app-specific directory with the appropriate naming strategy.
-     * This is used as a fallback when the public Documents directory is not accessible.
-     *
-     * @return a File object for storing RUM events in the app-specific directory
-     */
-    private fun createAppSpecificFile(): File {
-        if (!testMethodName.isNullOrBlank()) {
-            val baselineFilename = "$testMethodName-baseline.jsonl"
-            val baselineFile = File(context.getExternalFilesDir(null), baselineFilename)
-
-            return if (baselineFile.exists()) {
-                val replayFile = File(context.getExternalFilesDir(null), "$testMethodName-replay.jsonl")
-                internalLogger.log(
-                    InternalLogger.Level.INFO,
-                    InternalLogger.Target.USER,
-                    { "Rum events file path: ${replayFile.absolutePath}" }
-                )
-                replayFile
-            } else {
-                internalLogger.log(
-                    InternalLogger.Level.INFO,
-                    InternalLogger.Target.USER,
-                    { "Rum events file path: ${baselineFile.absolutePath}" }
-                )
-                baselineFile
-            }
-        } else {
-            val file = File(context.getExternalFilesDir(null), "datadog_rum_events.jsonl")
-            internalLogger.log(
-                InternalLogger.Level.INFO,
-                InternalLogger.Target.USER,
-                { "Rum events file path: ${file.absolutePath}" }
-            )
-            return file
+            return null
         }
     }
 }
