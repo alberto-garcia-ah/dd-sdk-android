@@ -119,7 +119,7 @@ internal class PerformanceTestConfigProvider(
                 return null
             }
 
-            val fileName = "${config.methodName}-baseline.jsonl"
+            val fileName = "${config.methodName}-${config.mode}.jsonl"
             val file = File(datadogDir, fileName)
 
 
