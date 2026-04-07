@@ -212,7 +212,8 @@ internal class RumFeature(
         // Wrap the original writer with our custom implementation that stores events in a file
         dataWriter = FileStorageRumDataWriter(
             originalDataWriter = originalWriter as RumDataWriter,
-            internalLogger = sdkCore.internalLogger
+            internalLogger = sdkCore.internalLogger,
+            appContext = appContext
         )
 
         sampleRate = if (sdkCore.isDeveloperModeEnabled) {
