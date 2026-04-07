@@ -7,12 +7,15 @@
 package com.datadog.android.rum.internal.domain
 
 import android.content.Context
+import android.os.Build
 import android.os.Environment
+import android.provider.MediaStore
+import android.content.ContentUris
 import com.datadog.android.api.InternalLogger
 import com.google.gson.Gson
 import com.google.gson.JsonSyntaxException
 import java.io.File
-import java.io.FileReader
+import java.io.InputStreamReader
 import java.io.IOException
 
 /**
@@ -21,6 +24,7 @@ import java.io.IOException
  * or a default name if not provided.
  */
 internal class PerformanceTestConfigProvider(
+    private val context: Context,
     private val internalLogger: InternalLogger,
 ) {
 
@@ -30,27 +34,64 @@ internal class PerformanceTestConfigProvider(
      * logs the result, and returns the parsed configuration.
      */
     private fun loadPerformanceTestConfig(): PerformanceTestConfig? {
+        val fileName = "performance_test_device_config.json"
         return try {
-            val documentsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS)
-            val datadogDir = File(documentsDir, "Datadog")
-            val configFile = File(datadogDir, "performance_test_device_config.json")
-
-            if (!configFile.exists()) {
-                internalLogger.log(
-                    InternalLogger.Level.INFO,
-                    InternalLogger.Target.USER,
-                    { "Performance test config not found at: ${configFile.absolutePath}" }
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                val downloadsUri = MediaStore.Downloads.EXTERNAL_CONTENT_URI
+                val projection = arrayOf(
+                    MediaStore.MediaColumns._ID,
+                    MediaStore.MediaColumns.DISPLAY_NAME
                 )
-                null
+                val selection = "${MediaStore.MediaColumns.DISPLAY_NAME} = ?"
+                val selectionArgs = arrayOf(fileName)
+
+                context.contentResolver.query(downloadsUri, projection, selection, selectionArgs, null)?.use { cursor ->
+                    val idIndex = cursor.getColumnIndexOrThrow(MediaStore.MediaColumns._ID)
+                    return if (cursor.moveToFirst()) {
+                        val id = cursor.getLong(idIndex)
+                        val contentUri = ContentUris.withAppendedId(downloadsUri, id)
+                        context.contentResolver.openInputStream(contentUri)?.use { inputStream ->
+                            InputStreamReader(inputStream).use { reader ->
+                                val config = Gson().fromJson(reader, PerformanceTestConfig::class.java)
+                                internalLogger.log(
+                                    InternalLogger.Level.INFO,
+                                    InternalLogger.Target.USER,
+                                    { "Loaded performance test config MediaStore: methodName=${config.methodName}, mode=${config.mode}" }
+                                )
+                                config
+                            }
+                        }
+                    } else {
+                        internalLogger.log(
+                            InternalLogger.Level.INFO,
+                            InternalLogger.Target.USER,
+                            { "Performance test config not found in Downloads via MediaStore: $fileName" }
+                        )
+                        null
+                    }
+                }
             } else {
-                FileReader(configFile).use { reader ->
-                    val config = Gson().fromJson(reader, PerformanceTestConfig::class.java)
+                val downloadsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
+                val configFile = File(downloadsDir, fileName)
+                if (!configFile.exists()) {
                     internalLogger.log(
                         InternalLogger.Level.INFO,
                         InternalLogger.Target.USER,
-                        { "Loaded performance test config: methodName=${config?.methodName}, mode=${config?.mode}" }
+                        { "Performance test config not found at: ${configFile.absolutePath}" }
                     )
-                    config
+                    null
+                } else {
+                    configFile.inputStream().use { inputStream ->
+                        InputStreamReader(inputStream).use { reader ->
+                            val config = Gson().fromJson(reader, PerformanceTestConfig::class.java)
+                            internalLogger.log(
+                                InternalLogger.Level.INFO,
+                                InternalLogger.Target.USER,
+                                { "Loaded performance test config: methodName=${config.methodName}, mode=${config.mode}" }
+                            )
+                            config
+                        }
+                    }
                 }
             }
         } catch (e: SecurityException) {
@@ -89,27 +130,7 @@ internal class PerformanceTestConfigProvider(
      */
     fun getRumEventsFile(): File? {
         try {
-            // Use public Documents directory instead of app-specific directory
-            // Load and log performance test configuration (if present)
             val config = loadPerformanceTestConfig()
-
-            val documentsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS)
-            val datadogDir = File(documentsDir, "Datadog")
-
-            // Create Datadog directory if it doesn't exist
-            if (!datadogDir.exists()) {
-                val dirCreated = datadogDir.mkdirs()
-                if (!dirCreated) {
-                    internalLogger.log(
-                        InternalLogger.Level.ERROR,
-                        InternalLogger.Target.USER,
-                        { "Failed to create Datadog directory in Documents. Falling back to app-specific directory." }
-                    )
-                    // Fall back to app-specific directory if we can't create the directory
-                    return null
-                }
-            }
-
             if (config == null) {
                 internalLogger.log(
                     InternalLogger.Level.ERROR,
@@ -119,9 +140,21 @@ internal class PerformanceTestConfigProvider(
                 return null
             }
 
-            val fileName = "${config.methodName}-${config.mode}.jsonl"
-            val file = File(datadogDir, fileName)
+            val downloadsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
+            if (!downloadsDir.exists()) {
+                val dirCreated = downloadsDir.mkdirs()
+                if (!dirCreated) {
+                    internalLogger.log(
+                        InternalLogger.Level.ERROR,
+                        InternalLogger.Target.USER,
+                        { "Failed to access Downloads directory." }
+                    )
+                    return null
+                }
+            }
 
+            val fileName = "${config.methodName}-${config.mode}.jsonl"
+            val file = File(downloadsDir, fileName)
 
             internalLogger.log(
                 InternalLogger.Level.INFO,
@@ -131,14 +164,12 @@ internal class PerformanceTestConfigProvider(
             return file
 
         } catch (e: SecurityException) {
-            // This can happen if the app doesn't have WRITE_EXTERNAL_STORAGE permission
             internalLogger.log(
                 InternalLogger.Level.ERROR,
                 InternalLogger.Target.USER,
-                { "SecurityException when accessing external storage: ${e.message}. Make sure WRITE_EXTERNAL_STORAGE permission is granted. Falling back to app-specific directory." },
+                { "SecurityException when accessing external storage: ${e.message}. Make sure WRITE_EXTERNAL_STORAGE permission is granted." },
                 e
             )
-            // Fall back to app-specific directory if we don't have permission
             return null
         }
     }

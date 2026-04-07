@@ -172,6 +172,8 @@ enum com.datadog.android.rum.configuration.VitalsUpdateFrequency
   - NEVER
 interface com.datadog.android.rum.event.ViewEventMapper : com.datadog.android.event.EventMapper<com.datadog.android.rum.model.ViewEvent>
   override fun map(com.datadog.android.rum.model.ViewEvent): com.datadog.android.rum.model.ViewEvent
+data class com.datadog.android.rum.internal.domain.PerformanceTestConfig
+  constructor(String, String)
 data class com.datadog.android.rum.internal.domain.event.ResourceTiming
   constructor(Long = 0L, Long = 0L, Long = 0L, Long = 0L, Long = 0L, Long = 0L, Long = 0L, Long = 0L, Long = 0L, Long = 0L)
 interface com.datadog.android.rum.internal.monitor.AdvancedNetworkRumMonitor : com.datadog.android.rum.RumMonitor

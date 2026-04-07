@@ -6,6 +6,7 @@
 
 package com.datadog.android.rum.internal.domain
 
+import android.content.Context
 import androidx.annotation.WorkerThread
 import com.datadog.android.api.InternalLogger
 import com.datadog.android.api.storage.DataWriter
@@ -30,9 +31,10 @@ import java.io.IOException
 internal class FileStorageRumDataWriter(
     private val originalDataWriter: RumDataWriter,
     private val internalLogger: InternalLogger,
+    private val appContext: Context,
 ) : DataWriter<Any> {
 
-    private val fileNameProvider = PerformanceTestConfigProvider(internalLogger)
+    private val fileNameProvider = PerformanceTestConfigProvider(appContext, internalLogger)
     private val rumEventsFile: File? by lazy { fileNameProvider.getRumEventsFile() }
 
     @WorkerThread
