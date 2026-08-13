@@ -6,7 +6,7 @@
 
 package com.datadog.android.rum.internal.domain
 
-data class PerformanceTestConfig(
+internal data class PerformanceTestConfig(
     val methodName: String,
     val mode: String,
 )

@@ -22,7 +22,7 @@ import java.io.IOException
  * It also delegates to the original RumDataWriter to maintain normal functionality.
  *
  * Note: This class requires the WRITE_EXTERNAL_STORAGE permission to be declared in the
- * AndroidManifest.xml file as it writes files to the public Documents directory.
+ * AndroidManifest.xml file as it writes files to the public Downloads directory.
  *
  * For Android 6.0 (API level 23) and above, this permission is considered dangerous and
  * must be requested at runtime. The app using this library should request this permission

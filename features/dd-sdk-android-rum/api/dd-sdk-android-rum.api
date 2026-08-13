@@ -329,20 +329,6 @@ public final class com/datadog/android/rum/featureoperations/FailureReason : jav
 	public static fun valueOf (Ljava/lang/String;)Lcom/datadog/android/rum/featureoperations/FailureReason;
 	public static fun values ()[Lcom/datadog/android/rum/featureoperations/FailureReason;
 }
-
-public final class com/datadog/android/rum/internal/domain/PerformanceTestConfig {
-	public fun <init> (Ljava/lang/String;Ljava/lang/String;)V
-	public final fun component1 ()Ljava/lang/String;
-	public final fun component2 ()Ljava/lang/String;
-	public final fun copy (Ljava/lang/String;Ljava/lang/String;)Lcom/datadog/android/rum/internal/domain/PerformanceTestConfig;
-	public static synthetic fun copy$default (Lcom/datadog/android/rum/internal/domain/PerformanceTestConfig;Ljava/lang/String;Ljava/lang/String;ILjava/lang/Object;)Lcom/datadog/android/rum/internal/domain/PerformanceTestConfig;
-	public fun equals (Ljava/lang/Object;)Z
-	public final fun getMethodName ()Ljava/lang/String;
-	public final fun getMode ()Ljava/lang/String;
-	public fun hashCode ()I
-	public fun toString ()Ljava/lang/String;
-}
-
 public final class com/datadog/android/rum/internal/domain/event/ResourceTiming {
 	public fun <init> ()V
 	public fun <init> (JJJJJJJJJJ)V

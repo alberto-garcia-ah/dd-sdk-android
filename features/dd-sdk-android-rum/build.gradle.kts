@@ -138,7 +138,7 @@ androidLibraryConfig()
 junitConfig()
 javadocConfig()
 dependencyUpdateConfig()
-detektCustomConfig(":dd-sdk-android-core", ":dd-sdk-android-internal")
+detektCustomConfig()
 // Load properties from local.properties file if it exists
 val localProperties = Properties()
 val localPropertiesFile = rootProject.file("local.properties")

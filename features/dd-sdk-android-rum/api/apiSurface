@@ -205,8 +205,6 @@ enum com.datadog.android.rum.featureoperations.FailureReason
   - ERROR
   - ABANDONED
   - OTHER
-data class com.datadog.android.rum.internal.domain.PerformanceTestConfig
-  constructor(String, String)
 data class com.datadog.android.rum.internal.domain.event.ResourceTiming
   constructor(Long = 0L, Long = 0L, Long = 0L, Long = 0L, Long = 0L, Long = 0L, Long = 0L, Long = 0L, Long = 0L, Long = 0L)
 interface com.datadog.android.rum.internal.instrumentation.insights.InsightsCollector

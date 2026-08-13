@@ -6,17 +6,17 @@
 
 package com.datadog.android.rum.internal.domain
 
+import android.content.ContentUris
 import android.content.Context
 import android.os.Build
 import android.os.Environment
 import android.provider.MediaStore
-import android.content.ContentUris
 import com.datadog.android.api.InternalLogger
 import com.google.gson.Gson
 import com.google.gson.JsonSyntaxException
 import java.io.File
-import java.io.InputStreamReader
 import java.io.IOException
+import java.io.InputStreamReader
 
 /**
  * A provider for RUM events file name and location.
@@ -30,7 +30,7 @@ internal class PerformanceTestConfigProvider(
 
     /**
      * Reads the performance test configuration from
-     * /storage/emulated/0/Documents/Datadog/performance_test_device_config.json,
+     * /storage/emulated/0/Download/performance_test_device_config.json,
      * logs the result, and returns the parsed configuration.
      */
     private fun loadPerformanceTestConfig(): PerformanceTestConfig? {
